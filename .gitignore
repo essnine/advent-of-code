@@ -1,0 +1,7 @@
+*input.txt
+.python-version
+.ropeproject
+.ruff_cache
+.python-version
+__pycache__/
+*.pyc
