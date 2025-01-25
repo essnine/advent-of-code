@@ -1,90 +1,70 @@
-import json
+import os
 import sys
+from math import floor
 
-from collections import defaultdict
-from itertools import pairwise
-from pprint import pprint
+def check_correctness(rule_set: set, pageset) -> tuple[bool, tuple[int, int] | None]:
+    ptr = 0
+    max = len(pageset)-1
+    valid = True
+    while ptr < (max) :
+        for i in range(ptr, max):
+            page_combo = "|".join((pageset[ptr], pageset[i+1],))
+            rev_page_combo = "|".join((pageset[i+1], pageset[ptr],))
+            if page_combo not in rule_set or rev_page_combo in rule_set:
+                valid = False
+                break
+        if not valid:
+            break
+        ptr += 1
+    if valid:
+        return valid, None
+    else:
+        return valid, (ptr, i+1)
 
-
-class Node:
-    def __init__(self, value: int):
-        self.value: int = value
-        self.post: Node | None = None
-        self.previous: Node | None = None
-
-    def update_previous(self, node):
-        setattr(self, "previous", node)
-
-    def update_post(self, node):
-        setattr(self, "post", node)
-    
-    def __str__(self):
-        return f"value: {self.value}\tpre: {self.previous.value}\tpost: {self.post.value}"
-
-    def __repr__(self):
-        return f"value: {self.value}\tpre: {self.previous.value}\tpost: {self.post.value}"
-
-
-PAGE_NODE_MAP: dict[int, Node] = {}
-
-
-def build_list(rules: list[str]):
-    for rule in rules:
-        page_pre, page_post = tuple(map(int, rule.split("|")))
-
-        if not PAGE_NODE_MAP.get(page_pre):
-            node_pre = Node(page_pre)
-            PAGE_NODE_MAP[page_pre] = node_pre
-        node_pre = PAGE_NODE_MAP[page_pre]
-
-        if not PAGE_NODE_MAP.get(page_post):
-            node_post = Node(page_post)
-            PAGE_NODE_MAP[page_post] = node_post
-        node_post = PAGE_NODE_MAP[page_post]
-
-        if node_post.previous is None:
-            node_post.update_previous(node_pre)
-        else:
-            if node_post.previous.value > node_pre.value:
-                node_post.previous.update_post(node_pre)
-
-        if node_pre.post is None:
-            node_pre.update_post(node_post)
-        else:
-            if node_pre.post.value > node_post.value:
-                node_pre.post.update_post(node_post)
-            else:
-                node_pre.post.update_previous(node_post)
 
 def solve(lines: tuple[str, ...]):
     bool_rules = True
-    rules = []
-    pages = []
+    rule_set = set()
+    pageset_list = []
     for line in lines:
         if bool_rules:
             if line.strip():
-                rules.append(line)
+                rule_set.add(line)
             else:
                 bool_rules = False
         else:
-            pages.append(line)
-
-    pred_rule_lookup = defaultdict(dict)
-    succ_rule_lookup = defaultdict(dict)
-    for rule in rules:
-        # print(rule)
-        pred, succ = rule.split("|")
-        # pprint(f"{pred}, {succ}")
-        pred_rule_lookup[pred][succ] = True
-        succ_rule_lookup[succ][pred] = True
-
-    for page in pages:
-        combos = tuple(pairwise(page.split(",")))
-        pprint(f"{page}: {combos}")
-    print(json.dumps(pred_rule_lookup, indent=4))
-    print(json.dumps(succ_rule_lookup, indent=4))
-    build_list(rules)
-    pprint(PAGE_NODE_MAP)
+            pageset_list.append(line.split(","))
+    
+    correct_pageset_list = []
+    incorrect_pageset_dict = {}
+    for pageset in pageset_list:
+        fl_valid, idxs = check_correctness(rule_set, pageset)
+        if not fl_valid:
+            pageset_tup = tuple(i for i in pageset)
+            incorrect_pageset_dict[pageset_tup] = idxs
+        else:
+            correct_pageset_list.append(pageset)
+    corr_acc = 0
+    incorr_acc = 0
+    for pageset in correct_pageset_list:
+        mid = pageset[floor(len(pageset)/2)]
+        corr_acc += int(mid)
+    for pageset_tup in incorrect_pageset_dict:
+        valid = False
+        idxs = incorrect_pageset_dict[pageset_tup]
+        _, idy = idxs
+        pageset = list(pageset_tup)
+        while (not valid):
+            if idy == len(pageset):
+                break
+            idx, idy = idxs
+            pageset[idx], pageset[idy] = pageset[idy], pageset[idx]
+            valid, idxs = check_correctness(rule_set, pageset)
+        mid = pageset[floor(len(pageset)/2)]
+        incorr_acc += int(mid)
+    print("corr_acc: ", corr_acc)
+    print("incorr_acc: ", incorr_acc)
+    return
 
 
 def main(input_filename="input.txt"):
@@ -93,8 +73,9 @@ def main(input_filename="input.txt"):
 
 
 if __name__ == "__main__":
-    input_filename = "input.txt"
+    path = os.path.dirname(__file__)
+    input_filename = f"{path}/input.txt"
     if len(sys.argv) > 1:
         if sys.argv[1] == "test":
-            input_filename = "sample_input.txt"
+            input_filename = f"{path}/sample_input.txt"
     main(input_filename)
