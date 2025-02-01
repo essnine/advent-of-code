@@ -1,5 +1,6 @@
 import os
 import sys
+import timeit
 from math import floor
 
 def check_correctness(rule_set: set, pageset) -> tuple[bool, tuple[int, int] | None]:
@@ -16,10 +17,7 @@ def check_correctness(rule_set: set, pageset) -> tuple[bool, tuple[int, int] | N
         if not valid:
             break
         ptr += 1
-    if valid:
-        return valid, None
-    else:
-        return valid, (ptr, i+1)
+    return valid, (ptr, i+1)
 
 
 def solve(lines: tuple[str, ...]):
@@ -60,6 +58,8 @@ def solve(lines: tuple[str, ...]):
             idx, idy = idxs
             pageset[idx], pageset[idy] = pageset[idy], pageset[idx]
             valid, idxs = check_correctness(rule_set, pageset)
+            # if valid:
+                # print("corrected!")
         mid = pageset[floor(len(pageset)/2)]
         incorr_acc += int(mid)
     print("corr_acc: ", corr_acc)
@@ -78,4 +78,6 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "test":
             input_filename = f"{path}/sample_input.txt"
-    main(input_filename)
+    # main(input_filename)
+    time_code_exec = timeit.timeit(main, number=1)
+    print("ran main in {}".format(time_code_exec))
